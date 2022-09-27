@@ -2,20 +2,32 @@
 #include <SDL.h>
 #include <SDL_timer.h>
 #include <vector>
+#include <set>
+#include <queue>
 #include <cmath>
 
 using namespace std;
 
 int sizex, sizey, width, height, tx, ty;
-double langle = M_PI * 7 / 4 + 0.1, rangle = M_PI * 5 / 4 - 0.1;
+double langle = 10.9978, rangle = 9.22699;
+
+double ang(int x1, int y1, int x2, int y2) {
+	return atan((y2 - y1) * 1.0 / (x2 - x1));
+}
 
 void presek(double angle, int x, int y, vector<vector<bool>>& wall) {
 	int i = y / height, j = x / width;
 	int offx = 0, offy = 0;
 	int sign[2] = { 1, -1 };
 	while (!wall[i][j]) {
-		offx += sign[cos(angle) < 0];
-		offy = -offx * tan(angle);
+		if (abs(tan(angle)) < 1) {
+			offx += sign[cos(angle) < 0];
+			offy = -offx * tan(angle);
+		}
+		else {
+			offy += sign[sin(angle) > 0];
+			offx = -offy / tan(angle);
+		}
 		i = (y + offy) / height;
 		j = (x + offx) / width;
 	}
@@ -23,41 +35,67 @@ void presek(double angle, int x, int y, vector<vector<bool>>& wall) {
 	ty = y + offy;
 }
 
-//void dfs(int x, int y, vector<vector<bool>>& wall, vector<vector<bool>>& visited) {
-//	if (visited[x][y]) return;
-//	if (wall[x][y]) {
+//void vision(int x, int y, vector<vector<bool>>& wall, set<pair<double, double>>& cones) {
+//	int flag = 1;
+//	int offx = 1, offy = 1;
+//	while (flag) {
+//		flag = 0;
+//		if (x + offx < sizex) {
+//			for (int i = 0; i < sizex; i++) {
+//				if (!wall[x + offx][y]) continue;
+//				double angle = ang() += (int) (*cones.begin().first) / 2 / M_PI;
+//				if (angle > *cones.begin().first && angle > *cones.end().second) {
 //
+//				}
+//			}
+//		}
 //	}
 //}
 
-
+void bfs(int x, int y, vector<vector<bool>>& wall, set<pair<double, double>>& cones) {
+	queue <pair <int, int>> q;
+	q.push({ x, y });
+	vector<vector<bool>> visited(sizey, vector<bool>(sizex));
+	vector<pair<int, int>> offset = { {0, 0}, {width, 0}, {0, height}, {width, height} };
+	while (!q.empty()) {
+		int i = q.front().second, j = q.front().first;
+		q.pop();
+		if (i < 0 || j < 0 || i >= sizey || j >= sizex || visited[i][j]) continue;
+		visited[i][j] = 1;
+		q.push({ i, j + 1 });
+		q.push({ i, j - 1 });
+		q.push({ i + 1, j });
+		q.push({ i - 1, j });
+		if (!wall[i][j]) continue; //i prolazi imaju susede, ide se van granica grida
+		for (int it = 0; it < 4; it++) {
+			if (it == i > y + i > y + j > x) continue;
+			double angle = ang(width * x + width / 2, height * y + height / 2, width * j + offset[it].first, height * i + offset[it].second);
+			angle += rangle / 2 / M_PI;
+			if (angle<rangle || angle>langle) continue;
+			cout << j << ' ' << i << endl;
+			for (auto const& range : cones) {
+				if (angle > range.first && angle < range.second) {
+					cones.erase({ range.first, range.second });
+					cones.insert({ range.first, angle });
+					cones.insert({ angle, range.second });
+					break;
+				}
+			}
+		}
+	}
+}
 
 int main(int argc, char* argv[])
 {
-	// returns zero on success else non-zero
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
 		printf("error initializing SDL: %s\n", SDL_GetError());
 	}
-	SDL_Window* win = SDL_CreateWindow("DOOM", // creates a window
-									   SDL_WINDOWPOS_CENTERED,
-									   SDL_WINDOWPOS_CENTERED,
-									   1000, 1000, 0);
- 
-	// triggers the program that controls
-	// your graphics hardware and sets flags
+	SDL_Window* win = SDL_CreateWindow("DOOM", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1000, 1000, 0);
 	Uint32 render_flags = SDL_RENDERER_ACCELERATED;
- 
-	// creates a renderer to render our images
 	SDL_Renderer* rend = SDL_CreateRenderer(win, -1, render_flags);
 
 	int x = 4, y = 1;
- 
-	// controls animation loop
 	int close = 0;
- 
-	// speed of box
-	//int speed = 1500;
-
 	vector<vector<bool>> wall = { {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 		{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 		{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
@@ -68,27 +106,21 @@ int main(int argc, char* argv[])
 		{1, 0, 0, 1, 0, 0, 0, 0, 0, 1},
 		{1, 0, 0, 1, 0, 0, 0, 0, 0, 1},
 		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
-
 	sizex = wall[0].size();
 	sizey = wall.size();
 	width = 1000 / sizex;
 	height = 1000 / sizey;
  
-	// animation loop
 	while (!close) {
 		SDL_Event event;
- 
-		// Events management
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
  
 			case SDL_QUIT:
-				// handling of close button
 				close = 1;
 				break;
  
 			case SDL_KEYDOWN:
-				// keyboard API for key pressed
 				switch (event.key.keysym.scancode) {
 				case SDL_SCANCODE_W:
 				//case SDL_SCANCODE_UP:
@@ -108,17 +140,21 @@ int main(int argc, char* argv[])
 					if (x < sizex - 1 && !wall[y][x + 1])
 						x += 1;
 					break;
-				//case SDL_SCANCODE_RIGHT:
+				case SDL_SCANCODE_RIGHT:
+					langle -= 0.1;
+					rangle -= 0.1;
+					//cout << langle << ' ' << rangle << endl;
+					break;
 				case SDL_SCANCODE_LEFT:
 					langle += 0.1;
 					rangle += 0.1;
+					//cout << langle << ' ' << rangle << endl;
+					break;
 				default:
 					break;
 				}
 			}
 		}
-
-		// clears the screen
 		SDL_RenderClear(rend);
 		//SDL_RenderCopy(rend, tex, NULL, &dest);
 
@@ -139,32 +175,25 @@ int main(int argc, char* argv[])
 		SDL_RenderDrawRect(rend, &rect);
 		SDL_RenderFillRect(rend, &rect);
 
+		SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
 		presek(langle, width* x + width / 2, height* y + height / 2, wall);
-		//cout << tx << ' ' << ty << ' ';
+		//cout << "||" << tx << ' ' << ty << ' ';
 		SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
 		presek(rangle, width * x + width / 2, height * y + height / 2, wall);
-		//cout << tx << ' ' << ty << ' ';
+		//cout << "||" << tx << ' ' << ty << ' ';
 		SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
- 
-		// triggers the double buffers
-		// for multiple rendering
+
+		set<pair<double, double>> cones;
+		cones.insert({ rangle, langle });
+		bfs(x, y, wall, cones);
+
 		SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
 		SDL_RenderPresent(rend);
- 
-		// calculates to 60 fps
 		SDL_Delay(1000 / 60);
 	}
  
-	// destroy texture
-	//SDL_DestroyTexture(tex);
- 
-	// destroy renderer
 	SDL_DestroyRenderer(rend);
- 
-	// destroy window
 	SDL_DestroyWindow(win);
-	 
-	// close SDL
 	SDL_Quit();
  
 	return 0;
