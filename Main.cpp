@@ -81,12 +81,24 @@ void bfs(int x, int y, vector<vector<bool>>& wall, set<pair<double, double>>& co
 			if (rv >= lcorner) break;
 			if (lv < rcorner) continue;
 			flag = 1;
-			//cones.erase(range);
 			delq.push_back(range);
-			//if (rcorner > rv) cones.insert({ rv, rcorner });
-			if (rcorner > rv) insq.push_back({ rv, rcorner });
-			//if (lcorner < lv) cones.insert({ lcorner, lv });
-			if (lcorner < lv) insq.push_back({ lcorner, lv });
+			SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
+
+			if (rcorner > rv) {
+				insq.push_back({ rv, rcorner });
+			}
+			else {
+				presek(rv, width * x + width / 2, height * y + height / 2, wall);
+				SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
+			}
+
+			if (lcorner < lv) {
+				insq.push_back({ lcorner, lv });
+			}
+			else {
+				presek(lv, width * x + width / 2, height * y + height / 2, wall);
+				SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
+			}
 		}
 		//cout << j << ' ' << i << endl;
 		if (!flag) continue;
@@ -95,7 +107,7 @@ void bfs(int x, int y, vector<vector<bool>>& wall, set<pair<double, double>>& co
 		const SDL_Rect rect = { width * j, height * i, width, height };
 		SDL_SetRenderDrawColor(rend, 100, 0, 100, 100);
 		SDL_RenderDrawRect(rend, &rect);
-		SDL_RenderFillRect(rend, &rect);
+		//SDL_RenderFillRect(rend, &rect);
 	}
 }
 
@@ -170,7 +182,7 @@ int main(int argc, char* argv[])
 						langle -= 2 * M_PI;
 						rangle -= 2 * M_PI;
 					}
-					cout << langle << ' ' << rangle << endl;
+					//cout << langle << ' ' << rangle << endl;
 					break;
 				default:
 					break;
@@ -200,10 +212,10 @@ int main(int argc, char* argv[])
 		SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
 		presek(langle, width* x + width / 2, height* y + height / 2, wall);
 		//cout << "||" << tx << ' ' << ty << ' ';
-		SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
+		//SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
 		presek(rangle, width * x + width / 2, height * y + height / 2, wall);
 		//cout << "||" << tx << ' ' << ty << ' ';
-		SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
+		//SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
 
 		set<pair<double, double>> cones;
 		//cout << endl;
