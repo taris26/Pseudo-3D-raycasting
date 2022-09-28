@@ -9,10 +9,15 @@
 using namespace std;
 
 int sizex, sizey, width, height, tx, ty;
-double langle = 10.9978, rangle = 9.22699;
+double langle = 9.8155, rangle = 8.04469;
 
-double ang(int x1, int y1, int x2, int y2) {
-	return atan((y2 - y1) * 1.0 / (x2 - x1));
+double ang(int x1t, int y1t, int x2t, int y2t) {
+	if (x1t == x2t) return 0;
+	double x1 = x1t, y1 = y1t, x2 = x2t, y2 = y2t;
+	double  angle = atan(-(y2 - y1) / (x2 - x1));
+	if (x2 < x1)  angle -= M_PI;
+	while (angle < 0) angle += 2 * M_PI;
+	return angle;
 }
 
 void presek(double angle, int x, int y, vector<vector<bool>>& wall) {
@@ -35,53 +40,62 @@ void presek(double angle, int x, int y, vector<vector<bool>>& wall) {
 	ty = y + offy;
 }
 
-//void vision(int x, int y, vector<vector<bool>>& wall, set<pair<double, double>>& cones) {
-//	int flag = 1;
-//	int offx = 1, offy = 1;
-//	while (flag) {
-//		flag = 0;
-//		if (x + offx < sizex) {
-//			for (int i = 0; i < sizex; i++) {
-//				if (!wall[x + offx][y]) continue;
-//				double angle = ang() += (int) (*cones.begin().first) / 2 / M_PI;
-//				if (angle > *cones.begin().first && angle > *cones.end().second) {
-//
-//				}
-//			}
-//		}
-//	}
-//}
-
-void bfs(int x, int y, vector<vector<bool>>& wall, set<pair<double, double>>& cones) {
+void bfs(int x, int y, vector<vector<bool>>& wall, set<pair<double, double>>& cones, SDL_Renderer* rend) {
 	queue <pair <int, int>> q;
 	q.push({ x, y });
 	vector<vector<bool>> visited(sizey, vector<bool>(sizex));
-	vector<pair<int, int>> offset = { {0, 0}, {width, 0}, {0, height}, {width, height} };
+	vector<pair<int, int>> offset = { {0, 0}, {width , 0}, {0, height }, {width , height } };
 	while (!q.empty()) {
 		int i = q.front().second, j = q.front().first;
 		q.pop();
 		if (i < 0 || j < 0 || i >= sizey || j >= sizex || visited[i][j]) continue;
 		visited[i][j] = 1;
-		q.push({ i, j + 1 });
-		q.push({ i, j - 1 });
-		q.push({ i + 1, j });
-		q.push({ i - 1, j });
-		if (!wall[i][j]) continue; //i prolazi imaju susede, ide se van granica grida
+		q.push({ j, i + 1 });
+		q.push({ j, i - 1 });
+		q.push({ j + 1, i });
+		q.push({ j - 1, i });
+		if (!wall[i][j]) continue;
+		set <double> corners;
 		for (int it = 0; it < 4; it++) {
-			if (it == i > y + i > y + j > x) continue;
+			if (it == (i > y) + (i > y) + (j > x)) continue;
 			double angle = ang(width * x + width / 2, height * y + height / 2, width * j + offset[it].first, height * i + offset[it].second);
-			angle += rangle / 2 / M_PI;
-			if (angle<rangle || angle>langle) continue;
-			cout << j << ' ' << i << endl;
-			for (auto const& range : cones) {
-				if (angle > range.first && angle < range.second) {
-					cones.erase({ range.first, range.second });
-					cones.insert({ range.first, angle });
-					cones.insert({ angle, range.second });
-					break;
-				}
+			if (!corners.empty()) {
+				double reper = *corners.rbegin();
+				while (reper - angle >= M_PI) angle += 2 * M_PI;
+				reper = *corners.begin();
+				while (angle - reper >= M_PI) angle -= 2 * M_PI;
 			}
+			corners.insert(angle);
 		}
+		double lcorner = *(corners.rbegin()), rcorner = *(corners.begin());
+		while ((int) lcorner / 2 / M_PI < (int) rangle / 2 / M_PI) {
+			rcorner += 2 * M_PI;
+			lcorner += 2 * M_PI;
+		}
+		bool flag = 0;
+		if (rcorner>=langle || lcorner<=rangle) continue;
+		vector<pair<double, double>> delq;
+		vector<pair<double, double>> insq;
+		for (auto const& range : cones) {
+			double lv = range.second, rv = range.first;
+			if (rv >= lcorner) break;
+			if (lv < rcorner) continue;
+			flag = 1;
+			//cones.erase(range);
+			delq.push_back(range);
+			//if (rcorner > rv) cones.insert({ rv, rcorner });
+			if (rcorner > rv) insq.push_back({ rv, rcorner });
+			//if (lcorner < lv) cones.insert({ lcorner, lv });
+			if (lcorner < lv) insq.push_back({ lcorner, lv });
+		}
+		//cout << j << ' ' << i << endl;
+		if (!flag) continue;
+		for (auto const& el : delq) cones.erase(el);
+		for (auto const& el : insq) cones.insert(el);
+		const SDL_Rect rect = { width * j, height * i, width, height };
+		SDL_SetRenderDrawColor(rend, 100, 0, 100, 100);
+		SDL_RenderDrawRect(rend, &rect);
+		SDL_RenderFillRect(rend, &rect);
 	}
 }
 
@@ -94,7 +108,7 @@ int main(int argc, char* argv[])
 	Uint32 render_flags = SDL_RENDERER_ACCELERATED;
 	SDL_Renderer* rend = SDL_CreateRenderer(win, -1, render_flags);
 
-	int x = 4, y = 1;
+	int x = 2, y = 5;
 	int close = 0;
 	vector<vector<bool>> wall = { {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 		{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
@@ -143,12 +157,20 @@ int main(int argc, char* argv[])
 				case SDL_SCANCODE_RIGHT:
 					langle -= 0.1;
 					rangle -= 0.1;
+					if (rangle < -0 * M_PI) {
+						langle += 2 * M_PI;
+						rangle += 2 * M_PI;
+					}
 					//cout << langle << ' ' << rangle << endl;
 					break;
 				case SDL_SCANCODE_LEFT:
 					langle += 0.1;
 					rangle += 0.1;
-					//cout << langle << ' ' << rangle << endl;
+					if (langle > 4 * M_PI) {
+						langle -= 2 * M_PI;
+						rangle -= 2 * M_PI;
+					}
+					cout << langle << ' ' << rangle << endl;
 					break;
 				default:
 					break;
@@ -184,8 +206,9 @@ int main(int argc, char* argv[])
 		SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
 
 		set<pair<double, double>> cones;
+		//cout << endl;
 		cones.insert({ rangle, langle });
-		bfs(x, y, wall, cones);
+		bfs(x, y, wall, cones, rend);
 
 		SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
 		SDL_RenderPresent(rend);
