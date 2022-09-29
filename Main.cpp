@@ -8,8 +8,8 @@
 
 using namespace std;
 
-int sizex, sizey, width, height, tx, ty;
-double langle = 9.8155, rangle = 8.04469;
+int sizex, sizey, width, height;
+double langle = 9.14913, rangle = 7.37832;
 
 double ang(int x1t, int y1t, int x2t, int y2t) {
 	if (x1t == x2t) return 0;
@@ -20,8 +20,22 @@ double ang(int x1t, int y1t, int x2t, int y2t) {
 	return angle;
 }
 
-void presek(double angle, int x, int y, vector<vector<bool>>& wall) {
-	int i = y / height, j = x / width;
+void drawGrid(SDL_Renderer* rend, vector<vector<bool>>& wall) {
+	for (int i = 0; i < sizey; i++) {
+		for (int j = 0; j < sizex; j++) {
+			const SDL_Rect rect = { 1000 / sizex * j, 1000 / sizey * i, 1000 / sizex, 1000 / sizey };
+			SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+			SDL_RenderDrawRect(rend, &rect);
+			if (!wall[i][j]) {
+				SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
+				SDL_RenderFillRect(rend, &rect);
+			}
+		}
+	}
+}
+
+pair <int, int> presek(double angle, int x, int y, int i, int j, vector<vector<bool>>& wall) {
+	/*int i = y / height, j = x / width;
 	int offx = 0, offy = 0;
 	int sign[2] = { 1, -1 };
 	while (!wall[i][j]) {
@@ -33,11 +47,47 @@ void presek(double angle, int x, int y, vector<vector<bool>>& wall) {
 			offy += sign[sin(angle) > 0];
 			offx = -offy / tan(angle);
 		}
-		i = (y + offy) / height;
-		j = (x + offx) / width;
+		i = (y + offy ) / height;
+		j = (x + offx ) / width;
 	}
 	tx = x + offx;
-	ty = y + offy;
+	ty = y + offy;*/
+	int tx = 0, ty = 0;
+	int posy = y * height + height / 2, posx = x * width + width / 2;
+	int posj[] = { 0, j * width, (j + 1) * width };
+	int posi[] = { 0, i * height, (i + 1) * height };
+	int fj = (x < j) + 2 * (x > j);
+	int fi = (y < i) + 2 * (y > i);
+	if (fj) {
+		int temp = -tan(angle) * (posj[fj] - posx) + posy;
+		if (temp >= posi[1]-1 && temp <= posi[2]) {
+			ty = temp;
+			tx = posj[fj];
+			return {tx, ty};
+		}
+	}
+	if (fi) {
+		int temp = (posy - posi[fi]) / tan(angle) + posx;
+		if (temp >= posj[1]-1 && temp <= posj[2]) {
+			tx = temp;
+			ty = posi[fi];
+		}
+	}
+	return { tx, ty };
+}
+
+void triangle(SDL_Renderer* rend, float x1, float y1, float x2, float y2, float x3, float y3) {
+	int a2 = 255 *180/ (/*0.2466019 * */sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))/*- 11.330097*/);
+	int a3 = 255 *180/ (/*0.2466019 * */sqrt((x3 - x1) * (x3 - x1) + (y3 - y1) * (y3 - y1)) /*- 11330097*/);
+	a2 = min(a2, 255);
+	a3 = min(a3, 255);
+	const std::vector< SDL_Vertex > verts =
+	{
+		{ SDL_FPoint{ (float) x1, (float) y1 }, SDL_Color{ 204, 115, 12, 255 }, SDL_FPoint{ 0 }, },
+		{ SDL_FPoint{ (float) x2, (float) y2 }, SDL_Color{ 204, 115, 12, (unsigned char)(a2) }, SDL_FPoint{ 0 }, },
+		{ SDL_FPoint{ (float) x3, (float) y3 }, SDL_Color{ 204, 115, 12, (unsigned char)(a3) }, SDL_FPoint{ 0 }, },
+	};
+	SDL_RenderGeometry(rend, nullptr, verts.data(), verts.size(), nullptr, 0);
 }
 
 void bfs(int x, int y, vector<vector<bool>>& wall, set<pair<double, double>>& cones, SDL_Renderer* rend) {
@@ -55,27 +105,35 @@ void bfs(int x, int y, vector<vector<bool>>& wall, set<pair<double, double>>& co
 		q.push({ j + 1, i });
 		q.push({ j - 1, i });
 		if (!wall[i][j]) continue;
-		set <double> corners;
+		set <pair <double, int>> corners;
 		for (int it = 0; it < 4; it++) {
 			if (it == (i > y) + (i > y) + (j > x)) continue;
+			if ((x == j || y == i) && it == (j >= x) + (i >= y) + (i >= y)) continue;
 			double angle = ang(width * x + width / 2, height * y + height / 2, width * j + offset[it].first, height * i + offset[it].second);
 			if (!corners.empty()) {
-				double reper = *corners.rbegin();
-				while (reper - angle >= M_PI) angle += 2 * M_PI;
-				reper = *corners.begin();
-				while (angle - reper >= M_PI) angle -= 2 * M_PI;
+				pair <double, int> reper = *corners.rbegin();
+				while (reper.first - angle >= M_PI) angle += 2 * M_PI;
+				reper = *corners.rbegin();
+				while (angle - reper.first >= M_PI) angle -= 2 * M_PI;
 			}
-			corners.insert(angle);
+			corners.insert({ angle, it });
 		}
-		double lcorner = *(corners.rbegin()), rcorner = *(corners.begin());
+		auto iterator = corners.begin();
+		double lcorner = corners.rbegin()->first, rcorner = iterator->first;
+		int lit = corners.rbegin()->second, rit = iterator->second;
+		iterator++;
+		double mcorner = iterator->first;
+		int mit = iterator->second;
 		while ((int) lcorner / 2 / M_PI < (int) rangle / 2 / M_PI) {
 			rcorner += 2 * M_PI;
 			lcorner += 2 * M_PI;
+			mcorner += 2 * M_PI;
 		}
 		bool flag = 0;
 		if (rcorner>=langle || lcorner<=rangle) continue;
 		vector<pair<double, double>> delq;
 		vector<pair<double, double>> insq;
+		vector<pair<int, int>> points(3);
 		for (auto const& range : cones) {
 			double lv = range.second, rv = range.first;
 			if (rv >= lcorner) break;
@@ -86,20 +144,33 @@ void bfs(int x, int y, vector<vector<bool>>& wall, set<pair<double, double>>& co
 
 			if (rcorner > rv) {
 				insq.push_back({ rv, rcorner });
+				points[0] = { j * width + offset[rit].first, i * height + offset[rit].second };
 			}
 			else {
-				presek(rv, width * x + width / 2, height * y + height / 2, wall);
-				SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
+				pair<int, int> t = presek(rv, x, y, i, j, wall);
+				//SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
+				points[0] = { t.first,t.second };
 			}
 
 			if (lcorner < lv) {
-				insq.push_back({ lcorner, lv });
+				insq.push_back({ lcorner, lv });\
+				points[2] = { j * width + offset[lit].first, i * height + offset[lit].second };
 			}
 			else {
-				presek(lv, width * x + width / 2, height * y + height / 2, wall);
-				SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
+				pair<int, int> t = presek(lv, x, y, i, j, wall);
+				//SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
+				points[2] = { t.first,t.second };
+			}
+
+			if (mcorner<lv && mcorner>rv) {
+				points[1]= { j * width + offset[mit].first, i * height + offset[mit].second };
 			}
 		}
+
+		if (points[1].first == 0) {
+			points[1] = points[2];
+		}
+
 		//cout << j << ' ' << i << endl;
 		if (!flag) continue;
 		for (auto const& el : delq) cones.erase(el);
@@ -108,6 +179,9 @@ void bfs(int x, int y, vector<vector<bool>>& wall, set<pair<double, double>>& co
 		SDL_SetRenderDrawColor(rend, 100, 0, 100, 100);
 		SDL_RenderDrawRect(rend, &rect);
 		//SDL_RenderFillRect(rend, &rect);
+		triangle(rend, width * x + width / 2, height * y + height / 2, points[0].first, points[0].second, points[1].first, points[1].second);
+		if(points[1]!=points[2])
+			triangle(rend, width * x + width / 2, height * y + height / 2, points[1].first, points[1].second, points[2].first, points[2].second);
 	}
 }
 
@@ -119,8 +193,9 @@ int main(int argc, char* argv[])
 	SDL_Window* win = SDL_CreateWindow("DOOM", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1000, 1000, 0);
 	Uint32 render_flags = SDL_RENDERER_ACCELERATED;
 	SDL_Renderer* rend = SDL_CreateRenderer(win, -1, render_flags);
+	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 
-	int x = 2, y = 5;
+	int x = 4, y = 1;
 	int close = 0;
 	vector<vector<bool>> wall = { {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 		{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
@@ -184,6 +259,10 @@ int main(int argc, char* argv[])
 					}
 					//cout << langle << ' ' << rangle << endl;
 					break;
+				case SDL_SCANCODE_I:
+					cout << langle << ' ' << rangle << endl;
+					cout << x << ' ' << y << endl;
+					break;
 				default:
 					break;
 				}
@@ -192,28 +271,18 @@ int main(int argc, char* argv[])
 		SDL_RenderClear(rend);
 		//SDL_RenderCopy(rend, tex, NULL, &dest);
 
-		for (int i = 0; i < sizey; i++) {
-			for (int j = 0; j < sizex; j++) {
-				const SDL_Rect rect = { 1000 / sizex * j, 1000 / sizey * i, 1000 / sizex, 1000 / sizey };
-				SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-				SDL_RenderDrawRect(rend, &rect);
-				if (!wall[i][j]) {
-					SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
-					SDL_RenderFillRect(rend, &rect);
-				}
-			}
-		}
+		drawGrid(rend, wall);
 
 		const SDL_Rect rect = { 1000 / sizex * x, 1000 / sizey * y, 1000 / sizex, 1000 / sizey };
 		SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
 		SDL_RenderDrawRect(rend, &rect);
 		SDL_RenderFillRect(rend, &rect);
 
-		SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
-		presek(langle, width* x + width / 2, height* y + height / 2, wall);
+		//SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
+		//presek(langle, width* x + width / 2, height* y + height / 2, wall);
 		//cout << "||" << tx << ' ' << ty << ' ';
 		//SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
-		presek(rangle, width * x + width / 2, height * y + height / 2, wall);
+		//presek(rangle, width * x + width / 2, height * y + height / 2, wall);
 		//cout << "||" << tx << ' ' << ty << ' ';
 		//SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
 
