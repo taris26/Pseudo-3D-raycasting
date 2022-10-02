@@ -8,8 +8,8 @@
 
 using namespace std;
 
-int sizex, sizey, width, height;
-double langle = 9.14913, rangle = 7.37832;
+int sizex, sizey, width, height, xpos, ypos;
+double langle, rangle, cangle = 3 * M_PI / 2, fov = M_PI / 3;
 
 double ang(int x1t, int y1t, int x2t, int y2t) {
 	if (x1t == x2t) return 0;
@@ -77,8 +77,8 @@ pair <int, int> presek(double angle, int x, int y, int i, int j, vector<vector<b
 }
 
 void triangle(SDL_Renderer* rend, float x1, float y1, float x2, float y2, float x3, float y3) {
-	int a2 = 255 *180/ (/*0.2466019 * */sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))/*- 11.330097*/);
-	int a3 = 255 *180/ (/*0.2466019 * */sqrt((x3 - x1) * (x3 - x1) + (y3 - y1) * (y3 - y1)) /*- 11330097*/);
+	int a2 = 255 *180/ (/*0.2466019 * */sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) /*- 11.330097*/);
+	int a3 = 255 *180/ (/*0.2466019 * */sqrt((x3 - x1) * (x3 - x1) + (y3 - y1) * (y3 - y1)) /*- 11.330097*/);
 	a2 = min(a2, 255);
 	a3 = min(a3, 255);
 	const std::vector< SDL_Vertex > verts =
@@ -90,7 +90,26 @@ void triangle(SDL_Renderer* rend, float x1, float y1, float x2, float y2, float 
 	SDL_RenderGeometry(rend, nullptr, verts.data(), verts.size(), nullptr, 0);
 }
 
-void bfs(int x, int y, vector<vector<bool>>& wall, set<pair<double, double>>& cones, SDL_Renderer* rend) {
+void trapistSir(SDL_Renderer* rend2, int x1, int y1, int x2, int y2, int x3, int y3) {
+	int disProj = 500 / tan(fov / 2);
+	double a2 = cangle - ang(x1, y1, x2, y2), a3 = cangle - ang(x1, y1, x3, y3);
+	int d2 = sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) * cos(a2), d3 = sqrt((x3 - x1) * (x3 - x1) + (y3 - y1) * (y3 - y1)) * cos(a3);
+	int x2p = 500 + disProj * tan(a2), x3p = 500 + disProj * tan(a3);
+	int height2 = 100 * disProj / d2, height3 = 100 * disProj / d3;
+	x2p = max(0, x2p);
+	x3p = max(0, x3p);
+	x2p = min(x2p, 999);
+	x3p = min(x3p, 999);
+	SDL_SetRenderDrawColor(rend2, 255, 255, 255, 255);
+	SDL_RenderDrawLine(rend2, x2p, 500 + height2 / 2, x2p, 500 - height2 / 2);
+	SDL_RenderDrawLine(rend2, x3p, 500 + height3 / 2, x3p, 500 - height3 / 2);
+	SDL_RenderDrawLine(rend2, x2p, 500 + height2 / 2, x3p, 500 + height3 / 2);
+	SDL_RenderDrawLine(rend2, x2p, 500 - height2 / 2, x3p, 500 - height3 / 2);
+}
+
+void bfs(int x, int y, vector<vector<bool>>& wall, SDL_Renderer* rend, SDL_Renderer* rend2) {
+	set<pair<double, double>> cones;
+	cones.insert({ rangle, langle });
 	queue <pair <int, int>> q;
 	q.push({ x, y });
 	vector<vector<bool>> visited(sizey, vector<bool>(sizex));
@@ -180,8 +199,11 @@ void bfs(int x, int y, vector<vector<bool>>& wall, set<pair<double, double>>& co
 		SDL_RenderDrawRect(rend, &rect);
 		//SDL_RenderFillRect(rend, &rect);
 		triangle(rend, width * x + width / 2, height * y + height / 2, points[0].first, points[0].second, points[1].first, points[1].second);
-		if(points[1]!=points[2])
+		trapistSir(rend2, width * x + width / 2, height * y + height / 2, points[0].first, points[0].second, points[1].first, points[1].second);
+		if(points[1]!=points[2]) {
 			triangle(rend, width * x + width / 2, height * y + height / 2, points[1].first, points[1].second, points[2].first, points[2].second);
+			trapistSir(rend2, width * x + width / 2, height * y + height / 2, points[1].first, points[1].second, points[2].first, points[2].second);
+		}
 	}
 }
 
@@ -195,8 +217,13 @@ int main(int argc, char* argv[])
 	SDL_Renderer* rend = SDL_CreateRenderer(win, -1, render_flags);
 	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 
+	SDL_Window* win2 = SDL_CreateWindow("DOOM", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1000, 1000, 0);
+	SDL_Renderer* rend2 = SDL_CreateRenderer(win2, -1, render_flags);
+
 	int x = 4, y = 1;
 	int close = 0;
+	langle = cangle + fov / 2;
+	rangle = cangle - fov / 2;
 	vector<vector<bool>> wall = { {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 		{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 		{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
@@ -223,6 +250,9 @@ int main(int argc, char* argv[])
  
 			case SDL_KEYDOWN:
 				switch (event.key.keysym.scancode) {
+				case SDL_SCANCODE_P:
+					close = 1;
+					break;
 				case SDL_SCANCODE_W:
 				//case SDL_SCANCODE_UP:
 					if (y > 0 && !wall[y - 1][x])
@@ -248,7 +278,7 @@ int main(int argc, char* argv[])
 						langle += 2 * M_PI;
 						rangle += 2 * M_PI;
 					}
-					//cout << langle << ' ' << rangle << endl;
+					cangle = (rangle + langle) / 2;
 					break;
 				case SDL_SCANCODE_LEFT:
 					langle += 0.1;
@@ -257,7 +287,7 @@ int main(int argc, char* argv[])
 						langle -= 2 * M_PI;
 						rangle -= 2 * M_PI;
 					}
-					//cout << langle << ' ' << rangle << endl;
+					cangle = (rangle + langle) / 2;
 					break;
 				case SDL_SCANCODE_I:
 					cout << langle << ' ' << rangle << endl;
@@ -269,7 +299,7 @@ int main(int argc, char* argv[])
 			}
 		}
 		SDL_RenderClear(rend);
-		//SDL_RenderCopy(rend, tex, NULL, &dest);
+		SDL_RenderClear(rend2);
 
 		drawGrid(rend, wall);
 
@@ -278,23 +308,17 @@ int main(int argc, char* argv[])
 		SDL_RenderDrawRect(rend, &rect);
 		SDL_RenderFillRect(rend, &rect);
 
-		//SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
-		//presek(langle, width* x + width / 2, height* y + height / 2, wall);
-		//cout << "||" << tx << ' ' << ty << ' ';
-		//SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
-		//presek(rangle, width * x + width / 2, height * y + height / 2, wall);
-		//cout << "||" << tx << ' ' << ty << ' ';
-		//SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
-
-		set<pair<double, double>> cones;
-		//cout << endl;
-		cones.insert({ rangle, langle });
-		bfs(x, y, wall, cones, rend);
+		bfs(x, y, wall, rend, rend2);
 
 		SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+		SDL_SetRenderDrawColor(rend2, 0, 0, 0, 255);
 		SDL_RenderPresent(rend);
+		SDL_RenderPresent(rend2);
 		SDL_Delay(1000 / 60);
 	}
+
+	SDL_DestroyRenderer(rend2);
+	SDL_DestroyWindow(win2);
  
 	SDL_DestroyRenderer(rend);
 	SDL_DestroyWindow(win);
