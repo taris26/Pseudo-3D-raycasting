@@ -8,7 +8,7 @@
 
 using namespace std;
 
-int sizex, sizey, width, height, xpos, ypos;
+int sizex, sizey, width, height, xpos, ypos, x, y;
 double langle, rangle, cangle = 3 * M_PI / 2, fov = M_PI / 3;
 
 double ang(int x1t, int y1t, int x2t, int y2t) {
@@ -34,32 +34,24 @@ void drawGrid(SDL_Renderer* rend, vector<vector<bool>>& wall) {
 	}
 }
 
+void move(double angle, vector<vector<bool>>& wall) {
+	int xtemp = xpos + 10 * cos(angle), ytemp = ypos - 10 * sin(angle);
+	if (xtemp < 0 || ytemp < 0 || xtemp >= 1000 || ytemp >= 1000 || wall[ytemp / height][xtemp / width]) 
+		return;
+	xpos = xtemp;
+	ypos = ytemp;
+	x = xpos / width;
+	y = ypos / width;
+}
+
 pair <int, int> presek(double angle, int x, int y, int i, int j, vector<vector<bool>>& wall) {
-	/*int i = y / height, j = x / width;
-	int offx = 0, offy = 0;
-	int sign[2] = { 1, -1 };
-	while (!wall[i][j]) {
-		if (abs(tan(angle)) < 1) {
-			offx += sign[cos(angle) < 0];
-			offy = -offx * tan(angle);
-		}
-		else {
-			offy += sign[sin(angle) > 0];
-			offx = -offy / tan(angle);
-		}
-		i = (y + offy ) / height;
-		j = (x + offx ) / width;
-	}
-	tx = x + offx;
-	ty = y + offy;*/
 	int tx = 0, ty = 0;
-	int posy = y * height + height / 2, posx = x * width + width / 2;
 	int posj[] = { 0, j * width, (j + 1) * width };
 	int posi[] = { 0, i * height, (i + 1) * height };
 	int fj = (x < j) + 2 * (x > j);
 	int fi = (y < i) + 2 * (y > i);
 	if (fj) {
-		int temp = -tan(angle) * (posj[fj] - posx) + posy;
+		int temp = -tan(angle) * (posj[fj] - xpos) + ypos;
 		if (temp >= posi[1]-1 && temp <= posi[2]) {
 			ty = temp;
 			tx = posj[fj];
@@ -67,7 +59,7 @@ pair <int, int> presek(double angle, int x, int y, int i, int j, vector<vector<b
 		}
 	}
 	if (fi) {
-		int temp = (posy - posi[fi]) / tan(angle) + posx;
+		int temp = (ypos - posi[fi]) / tan(angle) + xpos;
 		if (temp >= posj[1]-1 && temp <= posj[2]) {
 			tx = temp;
 			ty = posi[fi];
@@ -128,7 +120,7 @@ void bfs(int x, int y, vector<vector<bool>>& wall, SDL_Renderer* rend, SDL_Rende
 		for (int it = 0; it < 4; it++) {
 			if (it == (i > y) + (i > y) + (j > x)) continue;
 			if ((x == j || y == i) && it == (j >= x) + (i >= y) + (i >= y)) continue;
-			double angle = ang(width * x + width / 2, height * y + height / 2, width * j + offset[it].first, height * i + offset[it].second);
+			double angle = ang(xpos, ypos, width * j + offset[it].first, height * i + offset[it].second);
 			if (!corners.empty()) {
 				pair <double, int> reper = *corners.rbegin();
 				while (reper.first - angle >= M_PI) angle += 2 * M_PI;
@@ -167,7 +159,6 @@ void bfs(int x, int y, vector<vector<bool>>& wall, SDL_Renderer* rend, SDL_Rende
 			}
 			else {
 				pair<int, int> t = presek(rv, x, y, i, j, wall);
-				//SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
 				points[0] = { t.first,t.second };
 			}
 
@@ -177,7 +168,6 @@ void bfs(int x, int y, vector<vector<bool>>& wall, SDL_Renderer* rend, SDL_Rende
 			}
 			else {
 				pair<int, int> t = presek(lv, x, y, i, j, wall);
-				//SDL_RenderDrawLine(rend, width * x + width / 2, height * y + height / 2, tx, ty);
 				points[2] = { t.first,t.second };
 			}
 
@@ -189,26 +179,23 @@ void bfs(int x, int y, vector<vector<bool>>& wall, SDL_Renderer* rend, SDL_Rende
 		if (points[1].first == 0) {
 			points[1] = points[2];
 		}
-
-		//cout << j << ' ' << i << endl;
 		if (!flag) continue;
 		for (auto const& el : delq) cones.erase(el);
 		for (auto const& el : insq) cones.insert(el);
-		const SDL_Rect rect = { width * j, height * i, width, height };
-		SDL_SetRenderDrawColor(rend, 100, 0, 100, 100);
-		SDL_RenderDrawRect(rend, &rect);
+		//const SDL_Rect rect = { width * j, height * i, width, height };
+		//SDL_SetRenderDrawColor(rend, 100, 0, 100, 100);
+		//SDL_RenderDrawRect(rend, &rect);
 		//SDL_RenderFillRect(rend, &rect);
-		triangle(rend, width * x + width / 2, height * y + height / 2, points[0].first, points[0].second, points[1].first, points[1].second);
-		trapistSir(rend2, width * x + width / 2, height * y + height / 2, points[0].first, points[0].second, points[1].first, points[1].second);
+		triangle(rend, xpos, ypos, points[0].first, points[0].second, points[1].first, points[1].second);
+		trapistSir(rend2, xpos, ypos, points[0].first, points[0].second, points[1].first, points[1].second);
 		if(points[1]!=points[2]) {
-			triangle(rend, width * x + width / 2, height * y + height / 2, points[1].first, points[1].second, points[2].first, points[2].second);
-			trapistSir(rend2, width * x + width / 2, height * y + height / 2, points[1].first, points[1].second, points[2].first, points[2].second);
+			triangle(rend, xpos, ypos, points[1].first, points[1].second, points[2].first, points[2].second);
+			trapistSir(rend2, xpos, ypos, points[1].first, points[1].second, points[2].first, points[2].second);
 		}
 	}
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
 		printf("error initializing SDL: %s\n", SDL_GetError());
 	}
@@ -217,10 +204,11 @@ int main(int argc, char* argv[])
 	SDL_Renderer* rend = SDL_CreateRenderer(win, -1, render_flags);
 	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 
-	SDL_Window* win2 = SDL_CreateWindow("DOOM", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1000, 1000, 0);
+	SDL_Window* win2 = SDL_CreateWindow("First person", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1000, 1000, 0);
 	SDL_Renderer* rend2 = SDL_CreateRenderer(win2, -1, render_flags);
 
-	int x = 4, y = 1;
+	x = 4; 
+	y = 1;
 	int close = 0;
 	langle = cangle + fov / 2;
 	rangle = cangle - fov / 2;
@@ -238,7 +226,9 @@ int main(int argc, char* argv[])
 	sizey = wall.size();
 	width = 1000 / sizex;
 	height = 1000 / sizey;
- 
+	xpos = x * width + width / 2 + 1;
+	ypos = y * height + height / 2 + 1;
+
 	while (!close) {
 		SDL_Event event;
 		while (SDL_PollEvent(&event)) {
@@ -254,26 +244,20 @@ int main(int argc, char* argv[])
 					close = 1;
 					break;
 				case SDL_SCANCODE_W:
-				//case SDL_SCANCODE_UP:
-					if (y > 0 && !wall[y - 1][x])
-						y -= 1;
+					move(cangle, wall);
 					break;
 				case SDL_SCANCODE_A:
-					if (x > 0 && !wall[y][x - 1])
-						x -= 1;
+					move(cangle + M_PI / 2, wall);
 					break;
 				case SDL_SCANCODE_S:
-				//case SDL_SCANCODE_DOWN:
-					if (y < sizey - 1 && !wall[y + 1][x])
-						y += 1;
+					move(cangle + M_PI, wall);
 					break;
 				case SDL_SCANCODE_D:
-					if (x < sizex - 1 && !wall[y][x + 1])
-						x += 1;
+					move(cangle - M_PI / 2, wall);
 					break;
 				case SDL_SCANCODE_RIGHT:
-					langle -= 0.1;
-					rangle -= 0.1;
+					langle -= 0.05;
+					rangle -= 0.05;
 					if (rangle < -0 * M_PI) {
 						langle += 2 * M_PI;
 						rangle += 2 * M_PI;
@@ -281,8 +265,8 @@ int main(int argc, char* argv[])
 					cangle = (rangle + langle) / 2;
 					break;
 				case SDL_SCANCODE_LEFT:
-					langle += 0.1;
-					rangle += 0.1;
+					langle += 0.05;
+					rangle += 0.05;
 					if (langle > 4 * M_PI) {
 						langle -= 2 * M_PI;
 						rangle -= 2 * M_PI;
