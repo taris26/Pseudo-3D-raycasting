@@ -8,12 +8,12 @@
 
 using namespace std;
 
-int sizex, sizey, width, height, xpos, ypos, x, y;
+int sizex, sizey, width, height, xpos, ypos, x, y, playerWidth=10, playerHeight=10, speed=10;
 double langle, rangle, cangle = 3 * M_PI / 2, fov = M_PI / 3;
 
-double ang(int x1t, int y1t, int x2t, int y2t) {
-	if (x1t == x2t) return 0;
-	double x1 = x1t, y1 = y1t, x2 = x2t, y2 = y2t;
+double ang(double x1, double y1, double x2, double y2) {
+	if (x1 == x2) return 0;
+	//double x1 = x1t, y1 = y1t, x2 = x2t, y2 = y2t;
 	double  angle = atan(-(y2 - y1) / (x2 - x1));
 	if (x2 < x1)  angle -= M_PI;
 	while (angle < 0) angle += 2 * M_PI;
@@ -23,7 +23,7 @@ double ang(int x1t, int y1t, int x2t, int y2t) {
 void drawGrid(SDL_Renderer* rend, vector<vector<bool>>& wall) {
 	for (int i = 0; i < sizey; i++) {
 		for (int j = 0; j < sizex; j++) {
-			const SDL_Rect rect = { 1000 / sizex * j, 1000 / sizey * i, 1000 / sizex, 1000 / sizey };
+			const SDL_Rect rect = { width * j, height * i, width, height };
 			SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
 			SDL_RenderDrawRect(rend, &rect);
 			if (!wall[i][j]) {
@@ -35,8 +35,10 @@ void drawGrid(SDL_Renderer* rend, vector<vector<bool>>& wall) {
 }
 
 void move(double angle, vector<vector<bool>>& wall) {
-	int xtemp = xpos + 10 * cos(angle), ytemp = ypos - 10 * sin(angle);
-	if (xtemp < 0 || ytemp < 0 || xtemp >= 1000 || ytemp >= 1000 || wall[ytemp / height][xtemp / width]) 
+	int sign[] = { -1, 1 };
+	int yoff = playerHeight / 2 * sign[sin(angle) < 0], xoff = playerWidth / 2 * sign[cos(angle) > 0];
+	int xtemp = xpos + speed * cos(angle), ytemp = ypos - speed * sin(angle);
+	if (xtemp < playerWidth || ytemp < playerHeight || xtemp >= 1000 - playerWidth || ytemp >= 1000 - playerHeight || wall[(ytemp + yoff) / height][(xtemp + xoff) / width])
 		return;
 	xpos = xtemp;
 	ypos = ytemp;
@@ -105,7 +107,7 @@ void bfs(int x, int y, vector<vector<bool>>& wall, SDL_Renderer* rend, SDL_Rende
 	queue <pair <int, int>> q;
 	q.push({ x, y });
 	vector<vector<bool>> visited(sizey, vector<bool>(sizex));
-	vector<pair<int, int>> offset = { {0, 0}, {width , 0}, {0, height }, {width , height } };
+	vector<pair<int, int>> offset = { {0, 0}, {width , 0}, {0, height}, {width , height} };
 	while (!q.empty()) {
 		int i = q.front().second, j = q.front().first;
 		q.pop();
@@ -212,7 +214,8 @@ int main(int argc, char* argv[]) {
 	int close = 0;
 	langle = cangle + fov / 2;
 	rangle = cangle - fov / 2;
-	vector<vector<bool>> wall = { {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+	vector<vector<bool>> wall = 
+		{ {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 		{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 		{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 		{1, 0, 1, 0, 0, 0, 0, 0, 0, 1},
@@ -258,7 +261,7 @@ int main(int argc, char* argv[]) {
 				case SDL_SCANCODE_RIGHT:
 					langle -= 0.05;
 					rangle -= 0.05;
-					if (rangle < -0 * M_PI) {
+					if (rangle < 0) {
 						langle += 2 * M_PI;
 						rangle += 2 * M_PI;
 					}
@@ -274,8 +277,8 @@ int main(int argc, char* argv[]) {
 					cangle = (rangle + langle) / 2;
 					break;
 				case SDL_SCANCODE_I:
-					cout << langle << ' ' << rangle << endl;
-					cout << x << ' ' << y << endl;
+					cout << "langle: " << langle << ' ' << "rangle: " << rangle << endl;
+					cout << "xpos: " << xpos << ' ' << "ypos: " << ypos << endl;
 					break;
 				default:
 					break;
@@ -287,7 +290,7 @@ int main(int argc, char* argv[]) {
 
 		drawGrid(rend, wall);
 
-		const SDL_Rect rect = { 1000 / sizex * x, 1000 / sizey * y, 1000 / sizex, 1000 / sizey };
+		const SDL_Rect rect = { xpos - playerWidth / 2, ypos - playerHeight / 2, playerWidth, playerHeight };
 		SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
 		SDL_RenderDrawRect(rend, &rect);
 		SDL_RenderFillRect(rend, &rect);
