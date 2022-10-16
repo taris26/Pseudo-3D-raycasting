@@ -128,7 +128,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/dependencies/SDL2/lib/64;$(SolutionDir)/dependencies/SDLimg/lib/64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)/dependencies/SDL2/lib/x64;$(SolutionDir)/dependencies/SDLimg/lib/x64</AdditionalLibraryDirectories>
       <AdditionalDependencies>SDL2.lib;SDL2main.lib;SDL2_image.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
