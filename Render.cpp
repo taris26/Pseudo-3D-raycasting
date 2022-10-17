@@ -25,7 +25,7 @@ double Render::ang(double x1, double y1, double x2, double y2) {
 	while (angle < 0) angle += 2 * M_PI;
 	return angle;
 }
-pair <int, int> Render::presek(double angle,Player& player, int i, int j, Game& game) {
+pair <int, int> Render::presek(double angle, Player& player, int i, int j, Game& game) {
 	int tx = 0, ty = 0;
 	int posj[] = { 0, j * game.width, (j + 1) * game.width };
 	int posi[] = { 0, i * game.height, (i + 1) * game.height };
@@ -83,7 +83,7 @@ void Render::trapistSir(SDL_Renderer* rend2, Player& player, int x2, int y2, int
 	SDL_RenderDrawLine(rend2, x2p, 500 - height2 / 2, x3p, 500 - height3 / 2);
 }
 
-void Render::bfs(Game& game,Player& player) {
+void Render::bfs(Game& game, Player& player) {
 	set<pair<double, double>> cones;
 	cones.insert({ player.rangle, player.langle });
 	queue <pair <int, int>> q;
@@ -166,11 +166,6 @@ void Render::bfs(Game& game,Player& player) {
 		if (!flag) continue;
 		for (auto const& el : delq) cones.erase(el);
 		for (auto const& el : insq) cones.insert(el);
-
-		/*const SDL_Rect rect = { game.width * j, game.height * i, game.width, game.height };
-		SDL_SetRenderDrawColor(game.rendPov, 100, 0, 100, 100);
-		SDL_RenderDrawRect(game.rendPov, &rect);
-		SDL_RenderFillRect(game.rendPov, &rect);*/
 
 		triangle(game, player.xpos, player.ypos, points[0].first, points[0].second, points[1].first, points[1].second);
 		trapistSir(game.rendPov,player, points[0].first, points[0].second, points[1].first, points[1].second);

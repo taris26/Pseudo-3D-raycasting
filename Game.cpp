@@ -1,6 +1,9 @@
 #include "Game.h"
 
 void Game::init() {
+	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+		printf("error initializing SDL: %s\n", SDL_GetError());
+	}
 	winGrid = SDL_CreateWindow("DOOM", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1000, 1000, 0);
 	Uint32 render_flags = SDL_RENDERER_ACCELERATED;
 	rendGrid = SDL_CreateRenderer(winGrid, -1, render_flags);
@@ -10,8 +13,8 @@ void Game::init() {
 
 	player = new Player();
 
-	player->x = 4;
-	player->y = 1;
+	player->xpos = 150;
+	player->ypos = 800;
 	player->langle = player->cangle + player->fov / 2;
 	player->rangle = player->cangle - player->fov / 2;
 	wall =
@@ -29,8 +32,8 @@ void Game::init() {
 	sizey = wall.size();
 	width = 1000 / sizex;
 	height = 1000 / sizey;
-	player->xpos = player->x * width + width / 2 + 1;
-	player->ypos = player->y * height + height / 2 + 1;
+	player->x = player->xpos / width;
+	player->y = player->ypos / height;
 	render = new Render();
 	update = new Update();
 	
@@ -38,7 +41,7 @@ void Game::init() {
 
 void Game::updateGame() {
 	pollEvents();
-	
+
 }
 void Game::renderGame() {
 	SDL_RenderClear(rendGrid);
@@ -70,6 +73,12 @@ void Game::pollEvents() {
 		case SDL_QUIT:
 			close = 1;
 			break;
+
+		case SDL_WINDOWEVENT:
+			if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
+				close = 1;
+				break;
+			}
 
 		case SDL_KEYDOWN:
 			switch (event.key.keysym.scancode) {
@@ -107,7 +116,7 @@ void Game::pollEvents() {
 				player->cangle = (player->rangle + player->langle) / 2;
 				break;
 			case SDL_SCANCODE_I:
-				cout << "player->langle: " << player->langle << ' ' << "player->rangle: " << player->rangle << endl;
+				cout << "player->langle: " << player->langle << ' ' << "player->cangle: " << ' ' << "player->rangle: " << player->rangle << endl;
 				cout << "player->xpos: " << player->xpos << ' ' << "player->ypos: " << player->ypos << endl;
 				break;
 			default:
