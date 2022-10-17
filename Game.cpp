@@ -43,12 +43,20 @@ void Game::updateGame() {
 void Game::renderGame() {
 	SDL_RenderClear(rendGrid);
 	SDL_RenderClear(rendPov);
-	SDL_SetRenderDrawColor(rendGrid, 0, 0, 0, 255);
-	SDL_SetRenderDrawColor(rendPov, 0, 0, 0, 255);
-
+	
 	render->drawGrid(*this);
 
+	const SDL_Rect rect = {
+		player->xpos - player->playerWidth / 2, player->ypos - player->playerHeight / 2, player->playerWidth, player->playerHeight
+	};
+	SDL_SetRenderDrawColor(rendGrid, 255, 0, 0, 255);
+	SDL_RenderDrawRect(rendGrid, &rect);
+	SDL_RenderFillRect(rendGrid, &rect);
+
 	render->bfs(*this, *player);
+
+	SDL_SetRenderDrawColor(rendGrid, 0, 0, 0, 255);
+	SDL_SetRenderDrawColor(rendPov, 0, 0, 0, 255);
 	SDL_RenderPresent(rendGrid);
 	SDL_RenderPresent(rendPov);
 	SDL_Delay(1000 / 60); 
