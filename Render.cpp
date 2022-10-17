@@ -1,12 +1,7 @@
 #include "Render.h"
 
 void Render::renderGrid(Game& game,Player& player) {
-	const SDL_Rect rect = {
-		player.xpos - player.playerWidth / 2, player.ypos - player.playerHeight / 2, player.playerWidth, player.playerHeight 
-	};
-	SDL_SetRenderDrawColor(game.rendGrid, 255, 0, 0, 255);
-	SDL_RenderDrawRect(game.rendGrid, &rect);
-	SDL_RenderFillRect(game.rendGrid, &rect);
+	
 }
 void Render::drawGrid(Game& game) {
 	for (int i = 0; i < game.sizey; i++) {
@@ -55,10 +50,12 @@ pair <int, int> Render::presek(double angle,Player& player, int i, int j, Game& 
 }
 
 void Render::triangle(Game& game, float x1, float y1, float x2, float y2, float x3, float y3) {
+	
 	int a2 = 255 * 180 / (/*0.2466019 * */sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) /*- 11.330097*/);
 	int a3 = 255 * 180 / (/*0.2466019 * */sqrt((x3 - x1) * (x3 - x1) + (y3 - y1) * (y3 - y1)) /*- 11.330097*/);
 	a2 = min(a2, 255);
 	a3 = min(a3, 255);
+	
 	const std::vector< SDL_Vertex > verts =
 	{
 		{ SDL_FPoint{ (float)x1, (float)y1 }, SDL_Color{ 204, 115, 12, 255 }, SDL_FPoint{ 0 }, },
@@ -138,7 +135,7 @@ void Render::bfs(Game& game,Player& player) {
 			if (lv < rcorner) continue;
 			flag = 1;
 			delq.push_back(range);
-			SDL_SetRenderDrawColor(game.rendGrid, 0, 255, 0, 255);
+			//SDL_SetRenderDrawColor(game.rendGrid, 0, 255, 0, 255);
 
 			if (rcorner > rv) {
 				insq.push_back({ rv, rcorner });
@@ -169,10 +166,12 @@ void Render::bfs(Game& game,Player& player) {
 		if (!flag) continue;
 		for (auto const& el : delq) cones.erase(el);
 		for (auto const& el : insq) cones.insert(el);
-		//const SDL_Rect rect = { game.width * j, game.height * i, game.width, game.height };
-		//SDL_SetRenderDrawColor(game.rendGrid, 100, 0, 100, 100);
-		//SDL_RenderDrawRect(game.rendGrid, &rect);
-		//SDL_RenderFillRect(game.rendGrid, &rect);
+
+		/*const SDL_Rect rect = { game.width * j, game.height * i, game.width, game.height };
+		SDL_SetRenderDrawColor(game.rendPov, 100, 0, 100, 100);
+		SDL_RenderDrawRect(game.rendPov, &rect);
+		SDL_RenderFillRect(game.rendPov, &rect);*/
+
 		triangle(game, player.xpos, player.ypos, points[0].first, points[0].second, points[1].first, points[1].second);
 		trapistSir(game.rendPov,player, points[0].first, points[0].second, points[1].first, points[1].second);
 		if (points[1] != points[2]) {
