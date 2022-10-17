@@ -10,5 +10,5 @@ void Player::move(double angle, Game& game) {
 	xpos = xtemp;
 	ypos = ytemp;
 	x = xpos / game.width;
-	y = ypos / game.width;
+	y = ypos / game.height;
 }
