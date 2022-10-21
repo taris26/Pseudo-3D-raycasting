@@ -13,8 +13,8 @@ void Game::init() {
 
 	player = new Player();
 
-	player->xpos = 150;
-	player->ypos = 800;
+	player->xpos = 150.0;
+	player->ypos = 800.0;
 	player->langle = player->cangle + player->fov / 2;
 	player->rangle = player->cangle - player->fov / 2;
 	wall =
@@ -116,7 +116,7 @@ void Game::pollEvents() {
 				player->cangle = (player->rangle + player->langle) / 2;
 				break;
 			case SDL_SCANCODE_I:
-				cout << "player->langle: " << player->langle << ' ' << "player->cangle: " << ' ' << "player->rangle: " << player->rangle << endl;
+				cout << "player->langle: " << player->langle << ' ' << "player->cangle: " << player->cangle << ' ' << "player->rangle: " << player->rangle << endl;
 				cout << "player->xpos: " << player->xpos << ' ' << "player->ypos: " << player->ypos << endl;
 				break;
 			default:

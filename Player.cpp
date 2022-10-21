@@ -1,12 +1,22 @@
 #include "Player.h"
 
 void Player::move(double angle, Game& game) {
-	int sign[] = { -1, 1 };
-	int yoff = playerHeight / 2 * sign[sin(angle) < 0], xoff = playerWidth / 2 * sign[cos(angle) > 0];
-	int xtemp = xpos + speed * cos(angle), ytemp = ypos - speed * sin(angle);
-	if (xtemp < playerWidth || ytemp < playerHeight || xtemp >= 1000 - playerWidth || 
-		ytemp >= 1000 - playerHeight || game.wall[(ytemp + yoff) / game.height][(xtemp + xoff) / game.width])
-		return;
+	pair <int, int> offsets[] = { {-playerWidth / 2, -playerHeight / 2}, {playerWidth / 2, -playerHeight / 2}, {-playerWidth / 2, playerHeight / 2}, {playerWidth / 2, playerHeight / 2} };
+	double xtemp = xpos, ytemp = ypos;
+	for (int i = 1; i <= speed; i++) {
+		xtemp += cos(angle);
+		ytemp -= sin(angle);
+		bool flag = 0;
+		for (const pair<int, int>& offset : offsets) {
+			if (game.wall[(ytemp + offset.second) / game.height][(xtemp + offset.first) / game.width]) {
+				xtemp -= cos(angle);
+				ytemp += sin(angle);
+				flag = 1;
+				break;
+			}
+		}
+		if (flag) break;
+	}
 	xpos = xtemp;
 	ypos = ytemp;
 	x = xpos / game.width;
