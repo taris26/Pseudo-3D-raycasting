@@ -3,6 +3,12 @@
 void Render::renderGrid(Game& game,Player& player) {
 	
 }
+
+int Render::sign(int x) {
+	if (x == 0) return 0;
+	else if (x > 0) return 1;
+	return -1;
+}
 void Render::drawGrid(Game& game) {
 	for (int i = 0; i < game.sizey; i++) {
 		for (int j = 0; j < game.sizex; j++) {
@@ -18,9 +24,10 @@ void Render::drawGrid(Game& game) {
 }
 
 double Render::ang(double x1, double y1, double x2, double y2) {
-	if (x1 == x2) return 0;
+	double angle;
+	if (x1 == x2) angle = -(y2 - y1) / abs(y2 - y1) * M_PI / 2;
+	else angle = atan(-(y2 - y1) / (x2 - x1));
 	//double x1 = x1t, y1 = y1t, x2 = x2t, y2 = y2t;
-	double  angle = atan(-(y2 - y1) / (x2 - x1));
 	if (x2 < x1)  angle -= M_PI;
 	while (angle < 0) angle += 2 * M_PI;
 	return angle;
@@ -67,11 +74,15 @@ void Render::triangle(Game& game, float x1, float y1, float x2, float y2, float 
 
 void Render::trapistSir(SDL_Renderer* rend2, Player& player, int x2, int y2, int x3, int y3) {
 	int x1 = player.xpos, y1=player.ypos;
-	int disProj = 500 / tan(player.fov / 2);
+	double disProj = 500 / tan(player.fov / 2);
 	double a2 = player.cangle - ang(x1, y1, x2, y2), a3 = player.cangle - ang(x1, y1, x3, y3);
-	int d2 = sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) * cos(a2), d3 = sqrt((x3 - x1) * (x3 - x1) + (y3 - y1) * (y3 - y1)) * cos(a3);
+	double d2 = sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)), d3 = sqrt((x3 - x1) * (x3 - x1) + (y3 - y1) * (y3 - y1));
 	int x2p = 500 + disProj * tan(a2), x3p = 500 + disProj * tan(a3);
-	int height2 = 100 * disProj / d2, height3 = 100 * disProj / d3;
+	x2p = max(x2p, -1);
+	x3p = max(x3p, -1);
+	x2p = min(x2p, 1000);
+	x3p = min(x3p, 1000);
+	int height2 = 100 * disProj / d2 / cos(a2), height3 = 100 * disProj / d3 / cos(a3);
 	x2p = max(0, x2p);
 	x3p = max(0, x3p);
 	x2p = min(x2p, 999);
@@ -89,7 +100,7 @@ void Render::bfs(Game& game, Player& player) {
 	queue <pair <int, int>> q;
 	q.push({ player.x, player.y });
 	vector<vector<bool>> visited(game.sizey, vector<bool>(game.sizex));
-	vector<pair<int, int>> offset = { {0, 0}, {game.width , 0}, {0, game.height}, {game.width , game.height} };
+	vector<pair<int, int>> offset = { {0, 0}, {game.width , 0}, {0, game.height}, {game.width, game.height} };
 	while (!q.empty()) {
 		int i = q.front().second, j = q.front().first;
 		q.pop();
@@ -104,7 +115,9 @@ void Render::bfs(Game& game, Player& player) {
 		for (int it = 0; it < 4; it++) {
 			if (it == (i > player.y) + (i > player.y) + (j > player.x)) continue;
 			if ((player.x == j || player.y == i) && it == (j >= player.x) + (i >= player.y) + (i >= player.y)) continue;
-			double angle = ang(player.xpos, player.ypos, game.width * j + offset[it].first, game.height * i + offset[it].second);
+			int xcor = game.width * j + offset[it].first, ycor = game.height * i + offset[it].second;
+			double angle = ang(player.xpos, player.ypos, xcor, ycor);
+			//double angle2 = ang(player.xpos, player.ypos, xcor + sign(player.xpos - xcor), ycor + sign(player.ypos - ycor));
 			if (!corners.empty()) {
 				pair <double, int> reper = *corners.rbegin();
 				while (reper.first - angle >= M_PI) angle += 2 * M_PI;
@@ -129,6 +142,7 @@ void Render::bfs(Game& game, Player& player) {
 		vector<pair<double, double>> delq;
 		vector<pair<double, double>> insq;
 		vector<pair<int, int>> points(3);
+		int pix[] = { -1 ,1 };
 		for (auto const& range : cones) {
 			double lv = range.second, rv = range.first;
 			if (rv >= lcorner) break;
@@ -139,6 +153,7 @@ void Render::bfs(Game& game, Player& player) {
 
 			if (rcorner > rv) {
 				insq.push_back({ rv, rcorner });
+				//insq.push_back({ rv, ang(player.xpos, player.ypos, game.width * j + offset[rit].first + pix[rit], game.height * i + offset[rit].second + pix[rit]) });
 				points[0] = { j * game.width + offset[rit].first, i * game.height + offset[rit].second };
 			}
 			else {
@@ -147,7 +162,7 @@ void Render::bfs(Game& game, Player& player) {
 			}
 
 			if (lcorner < lv) {
-				insq.push_back({ lcorner, lv }); \
+				insq.push_back({ lcorner, lv }); 
 					points[2] = { j * game.width + offset[lit].first, i * game.height + offset[lit].second };
 			}
 			else {
