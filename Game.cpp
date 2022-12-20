@@ -4,12 +4,14 @@ void Game::init() {
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
 		printf("error initializing SDL: %s\n", SDL_GetError());
 	}
-	winGrid = SDL_CreateWindow("DOOM", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1000, 1000, 0);
 	Uint32 render_flags = SDL_RENDERER_ACCELERATED;
-	rendGrid = SDL_CreateRenderer(winGrid, -1, render_flags);
-	SDL_SetRenderDrawBlendMode(rendGrid, SDL_BLENDMODE_BLEND);
 	winPov = SDL_CreateWindow("First person", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1000, 1000, 0);
 	rendPov = SDL_CreateRenderer(winPov, -1, render_flags);
+	SDL_SetRenderDrawBlendMode(rendPov, SDL_BLENDMODE_BLEND);
+
+	if (TTF_Init() < 0) {
+		cout << "Error initializing SDL_ttf: " << TTF_GetError() << endl;
+	}
 
 	player = new Player();
 
@@ -49,26 +51,45 @@ void Game::init() {
 
 void Game::updateGame() {
 	pollEvents();
-
 }
 void Game::renderGame() {
-	SDL_RenderClear(rendGrid);
 	SDL_RenderClear(rendPov);
-	
-	render->drawGrid(*this);
-
-	const SDL_Rect rect = {
-		player->xpos - player->playerWidth / 2, player->ypos - player->playerHeight / 2, player->playerWidth, player->playerHeight
-	};
-	SDL_SetRenderDrawColor(rendGrid, 255, 0, 0, 255);
-	SDL_RenderDrawRect(rendGrid, &rect);
-	SDL_RenderFillRect(rendGrid, &rect);
 
 	render->bfs(*this, *player);
+	render->drawGrid(*this, *player);
 
-	SDL_SetRenderDrawColor(rendGrid, 0, 0, 0, 255);
+	//rendering text
+	TTF_Font* Sans = TTF_OpenFont("\Sans.ttf", 14);
+	SDL_Color White = { 255, 255, 255 };
+
+	stringstream stream;
+	stream.precision(2);
+	stream << fixed;
+	stream << player->cangle;
+
+	string text = "Use W, A, S, D to change position\n"
+		"Use arrows to move camera\n"
+		"Coordinates: X " + to_string((int) player->xpos) + " Y " + to_string((int) player->ypos) + "\n"
+		"Camera angle: "+stream.str();
+	
+	const char* cp = &text[0];
+
+	SDL_Surface* surfaceMessage = TTF_RenderText_Solid_Wrapped(Sans, cp, White, 0);
+
+	SDL_Texture* Message = SDL_CreateTextureFromSurface(rendPov, surfaceMessage);
+
+	SDL_Rect Message_rect;
+	Message_rect.x = 750;
+	Message_rect.y = 0;
+	Message_rect.w = 250;
+	Message_rect.h = 100;
+	SDL_RenderCopy(rendPov, Message, NULL, &Message_rect);
+	SDL_FreeSurface(surfaceMessage);
+	SDL_DestroyTexture(Message);
+
+
+	//presenting render
 	SDL_SetRenderDrawColor(rendPov, 0, 0, 0, 255);
-	SDL_RenderPresent(rendGrid);
 	SDL_RenderPresent(rendPov);
 	SDL_Delay(1000 / 60); 
 }
@@ -137,7 +158,5 @@ void Game::destroy() {
 	SDL_DestroyRenderer(rendPov);
 	SDL_DestroyWindow(winPov);
 
-	SDL_DestroyRenderer(rendGrid);
-	SDL_DestroyWindow(winGrid);
 	SDL_Quit();
 }

@@ -1,6 +1,7 @@
 #include "Player.h"
 
 void Player::move(double angle, Game& game) {
+	//changing player coordinates
 	pair <int, int> offsets[] = { {-playerWidth / 2, -playerHeight / 2}, {playerWidth / 2, -playerHeight / 2}, {-playerWidth / 2, playerHeight / 2}, {playerWidth / 2, playerHeight / 2} };
 	double xtemp = xpos, ytemp = ypos;
 	for (int i = 1; i <= speed; i++) {

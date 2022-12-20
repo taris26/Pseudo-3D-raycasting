@@ -2,10 +2,13 @@
 #include <iostream>
 #include <SDL.h>
 #include <SDL_timer.h>
+#include <SDL_ttf.h>
 #include <vector>
 #include <set>
 #include <queue>
 #include <cmath>
+#include <string>
+#include <sstream>
 
 class Render;
 class Update;
@@ -26,8 +29,6 @@ public:
 	void destroy();
 	Player* player;
 	int sizex, sizey, width, height;
-	SDL_Window* winGrid;
-	SDL_Renderer* rendGrid;
 	SDL_Window* winPov;
 	SDL_Renderer* rendPov;
 	vector<vector<bool>> wall;
