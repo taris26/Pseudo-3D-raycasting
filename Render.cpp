@@ -200,7 +200,6 @@ void Render::bfs(Game& game, Player& player) {
 		if (points[1].first == 0) {
 			points[1] = points[2];
 		}
-
 		if (!flag) continue;
 		for (auto const& el : delq) cones.erase(el);
 		for (auto const& el : insq) cones.insert(el);
