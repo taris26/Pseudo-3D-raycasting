@@ -5,6 +5,7 @@ void Game::init() {
 		printf("error initializing SDL: %s\n", SDL_GetError());
 	}
 
+
 	Uint32 render_flags = SDL_RENDERER_ACCELERATED;
 	winPov = SDL_CreateWindow("First person", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1000, 1000, 0);
 	rendPov = SDL_CreateRenderer(winPov, -1, render_flags);
