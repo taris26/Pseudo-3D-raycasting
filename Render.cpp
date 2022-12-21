@@ -25,7 +25,7 @@ void Render::drawGrid(Game& game, Player& player) {
 
 	//drawing player
 	const SDL_Rect rect = {
-		(player.xpos - player.playerWidth / 2) / scale, (player.ypos - player.playerHeight / 2) / scale, player.playerWidth / scale, player.playerHeight / scale
+		(int) (player.xpos - player.playerWidth / 2) / scale, (int)(player.ypos - player.playerHeight / 2) / scale, (int)player.playerWidth / scale, (int)player.playerHeight / scale
 	};
 	SDL_SetRenderDrawColor(game.rendPov, 255, 0, 0, 255);
 	SDL_RenderDrawRect(game.rendPov, &rect);
@@ -70,8 +70,8 @@ void Render::triangle(Game& game, float x1, float y1, float x2, float y2, float 
 	//drawing triangle with given vertices
 	
 	SDL_SetRenderTarget(game.rendPov, tekstura);
-	int a2 = 255 * 180 / (/*0.2466019 * */sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) /*- 11.330097*/);
-	int a3 = 255 * 180 / (/*0.2466019 * */sqrt((x3 - x1) * (x3 - x1) + (y3 - y1) * (y3 - y1)) /*- 11.330097*/);
+	int a2 = (int) 255 * 180 / (sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)));
+	int a3 = (int) 255 * 180 / (sqrt((x3 - x1) * (x3 - x1) + (y3 - y1) * (y3 - y1)));
 	a2 = min(a2, 255);
 	a3 = min(a3, 255);
 	
@@ -125,7 +125,7 @@ void Render::bfs(Game& game, Player& player) {
 	queue <pair <int, int>> q;
 	q.push({ player.x, player.y });
 	vector<vector<bool>> visited(game.sizey, vector<bool>(game.sizex));
-	vector<pair<int, int>> offset = { {0, 0}, {game.width , 0}, {0, game.height}, {game.width, game.height} };
+	vector<pair<int, int>> offset = { {0, 0}, {game.width - 1 , 0}, {0, game.height - 1}, {game.width - 1, game.height - 1} };
 	while (!q.empty()) {
 		int i = q.front().second, j = q.front().first;
 		q.pop();
@@ -200,6 +200,7 @@ void Render::bfs(Game& game, Player& player) {
 		if (points[1].first == 0) {
 			points[1] = points[2];
 		}
+
 		if (!flag) continue;
 		for (auto const& el : delq) cones.erase(el);
 		for (auto const& el : insq) cones.insert(el);

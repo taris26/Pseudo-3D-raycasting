@@ -3,7 +3,9 @@
 class Player
 {
 public:
-	int x, y, const playerWidth = 10, const playerHeight = 10, const speed = 5;
-	double  langle, rangle, cangle = 4.245575, const fov = M_PI / 3, xpos = 500, ypos = 703;
+	int x = 0, y = 0;
+	const int playerWidth = 10, playerHeight = 10, speed = 5;
+	double  langle = 0, rangle = 0, cangle = 4.245575, xpos = 500, ypos = 700;
+	const double  fov = M_PI / 3;
 	void move(double angle, Game& game);
 };

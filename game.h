@@ -35,7 +35,7 @@ public:
 private:
 	Update* update;
 	Render* render;
-	
+	TTF_Font* Sans;
 	void pollEvents();
 
 };

@@ -13,6 +13,8 @@ void Game::init() {
 		cout << "Error initializing SDL_ttf: " << TTF_GetError() << endl;
 	}
 
+	Sans = TTF_OpenFont("\Sans.ttf", 14);
+
 	player = new Player();
 
 	player->langle = player->cangle + player->fov / 2;
@@ -59,7 +61,6 @@ void Game::renderGame() {
 	render->drawGrid(*this, *player);
 
 	//rendering text
-	TTF_Font* Sans = TTF_OpenFont("\Sans.ttf", 14);
 	SDL_Color White = { 255, 255, 255 };
 
 	stringstream stream;
