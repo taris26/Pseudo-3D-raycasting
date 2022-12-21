@@ -44,21 +44,21 @@ double Render::ang(double x1, double y1, double x2, double y2) {
 pair <int, int> Render::presek(double angle, Player& player, int i, int j, Game& game) {
 	//finding coordinated of intersection between a line starting from player positiong under given angle and a wall
 	int tx = 0, ty = 0;
-	int posj[] = { 0, j * game.width, (j + 1) * game.width };
-	int posi[] = { 0, i * game.height, (i + 1) * game.height };
-	int fj = (player.x < j) + 2 * (player.x > j);
-	int fi = (player.y < i) + 2 * (player.y > i);
-	if (fj) {
+	int posj[] = { j * game.width, (j + 1) * game.width };
+	int posi[] = { i * game.height, (i + 1) * game.height };
+	int fj = player.x > j;
+	int fi = player.y > i;
+	if (player.x != j) {
 		int temp = -tan(angle) * (posj[fj] - player.xpos) + player.ypos;
-		if (temp >= posi[1] - 1 && temp <= posi[2]) {
+		if (temp >= posi[0] && temp <= posi[1]) {
 			ty = temp;
 			tx = posj[fj];
 			return { tx, ty };
 		}
 	}
-	if (fi) {
+	if (player.y != i) {
 		int temp = (player.ypos - posi[fi]) / tan(angle) + player.xpos;
-		if (temp >= posj[1] - 1 && temp <= posj[2]) {
+		if (temp >= posj[0] && temp <= posj[1]) {
 			tx = temp;
 			ty = posi[fi];
 		}
@@ -85,11 +85,11 @@ void Render::triangle(Game& game, float x1, float y1, float x2, float y2, float 
 	SDL_SetRenderTarget(game.rendPov, NULL);
 }
 
-void Render::trapistSir(SDL_Renderer* rend2, Player& player, int x2, int y2, int x3, int y3) {
+void Render::trapistSir(SDL_Renderer* rend2, Player& player, int x2, int y2, int x3, int y3, double ang2, double ang3) {
 	//projecting simulated 3d space on 2d plane
-	int x1 = player.xpos, y1=player.ypos;
+	int x1 = player.xpos, y1 = player.ypos;
 	double disProj = 500 / tan(player.fov / 2);
-	double a2 = player.cangle - ang(x1, y1, x2, y2), a3 = player.cangle - ang(x1, y1, x3, y3);
+	double a2 = player.cangle - ang2, a3 = player.cangle - ang3;
 	double d2 = sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)), d3 = sqrt((x3 - x1) * (x3 - x1) + (y3 - y1) * (y3 - y1));
 	int x2p = 500 + disProj * tan(a2), x3p = 500 + disProj * tan(a3);
 	x2p = max(x2p, -1);
@@ -125,7 +125,7 @@ void Render::bfs(Game& game, Player& player) {
 	queue <pair <int, int>> q;
 	q.push({ player.x, player.y });
 	vector<vector<bool>> visited(game.sizey, vector<bool>(game.sizex));
-	vector<pair<int, int>> offset = { {0, 0}, {game.width - 1 , 0}, {0, game.height - 1}, {game.width - 1, game.height - 1} };
+	vector<pair<int, int>> offset = { {0, 0}, {game.width , 0}, {0, game.height}, {game.width, game.height} };
 	while (!q.empty()) {
 		int i = q.front().second, j = q.front().first;
 		q.pop();
@@ -138,9 +138,10 @@ void Render::bfs(Game& game, Player& player) {
 		if (!game.wall[i][j]) continue;
 		set <pair <double, int>> corners;
 		for (int it = 0; it < 4; it++) {
-			if (it == (i > player.y) + (i > player.y) + (j > player.x)) continue;
-			if ((player.x == j || player.y == i) && it == (j >= player.x) + (i >= player.y) + (i >= player.y)) continue;
 			int xcor = game.width * j + offset[it].first, ycor = game.height * i + offset[it].second;
+			if (it == (i > player.y) + (i > player.y) + (j > player.x)) continue;
+			if ((player.xpos >= j * game.width && player.xpos <= (j + 1) * game.width || player.ypos >= i * game.height && player.ypos <= (i + 1) * game.height) && 
+				it == (player.ypos <= (i + 1) * game.height) * 2 + (player.xpos <= (j + 1) * game.width)) continue;
 			double angle = ang(player.xpos, player.ypos, xcor, ycor);
 			if (!corners.empty()) {
 				pair <double, int> reper = *corners.rbegin();
@@ -166,6 +167,7 @@ void Render::bfs(Game& game, Player& player) {
 		vector<pair<double, double>> delq;
 		vector<pair<double, double>> insq;
 		vector<pair<int, int>> points(3);
+		vector<float> angles(3);
 		int pix[] = { -1 ,1 };
 		for (auto const& range : cones) {
 			double lv = range.second, rv = range.first;
@@ -174,31 +176,37 @@ void Render::bfs(Game& game, Player& player) {
 			flag = 1;
 			delq.push_back(range);
 
-			if (rcorner > rv) {
-				insq.push_back({ rv, rcorner });
+			if (rcorner >= rv) {
+				if (rv != rcorner) insq.push_back({ rv, rcorner });
 				points[0] = { j * game.width + offset[rit].first, i * game.height + offset[rit].second };
+				angles[0] = rcorner;
 			}
 			else {
 				pair<int, int> t = presek(rv, player, i, j, game);
 				points[0] = { t.first,t.second };
+				angles[0] = rv;
 			}
 
-			if (lcorner < lv) {
-				insq.push_back({ lcorner, lv }); 
-					points[2] = { j * game.width + offset[lit].first, i * game.height + offset[lit].second };
+			if (lcorner <= lv) {
+				if (lcorner != lv) insq.push_back({ lcorner, lv });
+				points[2] = { j * game.width + offset[lit].first, i * game.height + offset[lit].second };
+				angles[2] = lcorner;
 			}
 			else {
 				pair<int, int> t = presek(lv, player, i, j, game);
 				points[2] = { t.first,t.second };
+				angles[2] = lv;
 			}
 
 			if (mcorner<lv && mcorner>rv) {
 				points[1] = { j * game.width + offset[mit].first, i * game.height + offset[mit].second };
+				angles[1] = mcorner;
 			}
 		}
 
 		if (points[1].first == 0) {
 			points[1] = points[2];
+			angles[1] = angles[2];
 		}
 
 		if (!flag) continue;
@@ -206,10 +214,10 @@ void Render::bfs(Game& game, Player& player) {
 		for (auto const& el : insq) cones.insert(el);
 
 		triangle(game, player.xpos, player.ypos, points[0].first, points[0].second, points[1].first, points[1].second, tekstura);
-		trapistSir(game.rendPov,player, points[0].first, points[0].second, points[1].first, points[1].second);
+		trapistSir(game.rendPov, player, points[0].first, points[0].second, points[1].first, points[1].second, angles[0], angles[1]);
 		if (points[1] != points[2]) {
 			triangle(game, player.xpos, player.ypos, points[1].first, points[1].second, points[2].first, points[2].second, tekstura);
-			trapistSir(game.rendPov, player, points[1].first, points[1].second, points[2].first, points[2].second);
+			trapistSir(game.rendPov, player, points[1].first, points[1].second, points[2].first, points[2].second, angles[1], angles[2]);
 		}
 	}
 
