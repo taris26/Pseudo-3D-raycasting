@@ -208,6 +208,7 @@ void Render::bfs(Game& game, Player& player) {
 			points[1] = points[2];
 			angles[1] = angles[2];
 		}
+
 		if (!flag) continue;
 		for (auto const& el : delq) cones.erase(el);
 		for (auto const& el : insq) cones.insert(el);
