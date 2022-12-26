@@ -147,6 +147,12 @@ void Game::pollEvents() {
 				}
 				player->cangle = (player->rangle + player->langle) / 2;
 				break;
+			case SDL_SCANCODE_UP:
+				if (player->cameraLevel <= 1000 - 15) player->cameraLevel += 15;
+				break;
+			case SDL_SCANCODE_DOWN:
+				if (player->cameraLevel >= 0 + 15) player->cameraLevel -= 15;
+				break;
 			case SDL_SCANCODE_I:
 				cout << "player->langle: " << player->langle << ' ' << "player->cangle: " << player->cangle << ' ' << "player->rangle: " << player->rangle << endl;
 				cout << "player->xpos: " << player->xpos << ' ' << "player->ypos: " << player->ypos << endl;

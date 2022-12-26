@@ -104,10 +104,10 @@ void Render::trapistSir(SDL_Renderer* rend2, Player& player, int x2, int y2, int
 
 	//drawing the plane
 	SDL_SetRenderDrawColor(rend2, 255, 255, 255, 255);
-	SDL_RenderDrawLine(rend2, x2p, 500 + height2 / 2, x2p, 500 - height2 / 2);
-	SDL_RenderDrawLine(rend2, x3p, 500 + height3 / 2, x3p, 500 - height3 / 2);
-	SDL_RenderDrawLine(rend2, x2p, 500 + height2 / 2, x3p, 500 + height3 / 2);
-	SDL_RenderDrawLine(rend2, x2p, 500 - height2 / 2, x3p, 500 - height3 / 2);
+	SDL_RenderDrawLine(rend2, x2p, player.cameraLevel + height2 / 2, x2p, player.cameraLevel - height2 / 2);
+	SDL_RenderDrawLine(rend2, x3p, player.cameraLevel + height3 / 2, x3p, player.cameraLevel - height3 / 2);
+	SDL_RenderDrawLine(rend2, x2p, player.cameraLevel + height2 / 2, x3p, player.cameraLevel + height3 / 2);
+	SDL_RenderDrawLine(rend2, x2p, player.cameraLevel - height2 / 2, x3p, player.cameraLevel - height3 / 2);
 }
 
 void Render::bfs(Game& game, Player& player) {
@@ -167,7 +167,7 @@ void Render::bfs(Game& game, Player& player) {
 		vector<pair<double, double>> delq;
 		vector<pair<double, double>> insq;
 		vector<pair<int, int>> points(3);
-		vector<float> angles(3);
+		vector<double> angles(3);
 		int pix[] = { -1 ,1 };
 		for (auto const& range : cones) {
 			double lv = range.second, rv = range.first;
