@@ -30,7 +30,7 @@
  *
  *  Note: In many places, SDL_ttf will say "glyph" when it means "code point."
  *  Unicode is hard, we learn as we go, and we apologize for adding to the
- *  confusion.
+ *  confusion.?
  *
  */
 #ifndef SDL_TTF_H_
